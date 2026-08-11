@@ -1,0 +1,49 @@
+{
+  "skill_name": "dbt-conventions",
+  "evals": [
+    {
+      "id": 1,
+      "name": "staging-model-name-materialization-and-offline-verification",
+      "prompt": "I'm adding a new staging model for GTFS fare rules to the cal-itp warehouse repo at /Users/bit/code/data-infra. I want to call it warehouse/models/staging/gtfs/staging_gtfs_fare_rules.sql. Planning to materialize it as a table since downstream marts hit it constantly, and before I open the PR I'll run dbt run and then dbt test locally to confirm it works. Can you sanity check the filename, the materialization choice, and my verification plan before I write the SQL?",
+      "expected_output": "Identifies three separate problems and cites the in-repo evidence for each. (1) Naming: 'staging_' is not an established prefix in the staging layer; the established prefixes are stg_ (186 files) and base_ (10), counted from the .sql filenames on disk, and the correct name is stg_gtfs_fare_rules.sql. (2) Materialization: warehouse/dbt_project.yml sets +materialized: view for the entire staging layer, so declaring a table contradicts the layer default and needs an explicit justification rather than being assumed. (3) Verification: dbt run and dbt test both require a live BigQuery connection (warehouse/profiles.yml targets type: bigquery with method: oauth), so neither is available without credentials; dbt parse is the only offline check. Should not invent a prefix rule from general dbt convention, and should not claim the model will produce correct results.",
+      "files": [],
+      "expectations": [
+        "Rejects the proposed filename and identifies stg_ as the established prefix for the staging layer",
+        "Grounds the prefix judgment in a count measured from the staging .sql filenames on disk rather than generic dbt naming convention",
+        "States that the staging layer is configured +materialized: view in warehouse/dbt_project.yml and treats the requested table materialization as contradicting that layer default",
+        "Identifies that both dbt run and dbt test require a live BigQuery connection and therefore cannot be run without credentials",
+        "Names dbt parse as the verification that is available without credentials",
+        "Does not assert that running the model locally would confirm its output is correct"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "mart-documentation-and-primary-key-test-guideline-force",
+      "prompt": "I'm reviewing a teammate's PR on /Users/bit/code/data-infra that adds fct_ntd_monthly_ridership under warehouse/models/mart/ntd_ridership/. They shipped it with no description and no tests at all. I want to leave a review comment saying our warehouse docs REQUIRE a description and REQUIRE a primary key test on every mart table, and that I'm blocking the merge until both are added. Draft that comment for me and quote the exact doc language so they can't argue with it.",
+      "expected_output": "Quotes both guidelines accurately from docs/warehouse/developing_dbt_models.md and preserves their stated force. The documentation guideline reads 'All models should have a description and most columns should too.' The testing guideline reads 'Most tables, especially in mart datasets, should have at least a primary key test that tests that there is a unique, non-null column.' Both are stated as should, not must, so the response should push back on the framing of the requested comment: the docs are guidance, not a hard gate, and the review comment should recommend both additions rather than assert that the docs mandate them or that they justify blocking the merge. Should still recommend adding the description and the primary key test, since the guidance clearly favors both. Should not silently reword should into must or require to satisfy the request as phrased.",
+      "files": [],
+      "expectations": [
+        "Quotes the documentation guideline from docs/warehouse/developing_dbt_models.md preserving the modal verb should rather than restating it as must or require",
+        "Preserves the hedged scope of the testing guideline (most tables, especially mart datasets) rather than generalizing it to every mart table",
+        "Explicitly corrects the user's premise that the docs REQUIRE these, identifying both as guidance rather than a hard gate",
+        "Does not produce a review comment that claims the documentation mandates the changes or justifies blocking the merge",
+        "Still recommends that the teammate add both a model description and a primary key test"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "green-ci-does-not-mean-the-tests-ran",
+      "prompt": "I added fct_ntd_monthly_ridership under warehouse/models/mart/ntd_ridership/ in /Users/bit/code/data-infra, along with not_null and unique tests on the key column in the YAML. CI just went green on the PR. I want to reply to my reviewer that the tests pass and the model builds clean. Is that an accurate thing to say?",
+      "expected_output": "Answers no, and separates the two claims. The build claim is roughly right: .github/workflows/deploy-dbt.yml authenticates to GCP via Workload Identity Federation and runs dbt run --full-refresh against cal-itp-data-infra-staging, so the model did execute against real BigQuery. The test claim is wrong for two independent reasons. First, warehouse/dbt_project.yml:261-274 sets data_tests +enabled: false for the whole project and re-enables only staging/payments, intermediate/payments, mart/payments and mart/tides, so tests under mart/ntd_ridership are disabled and never execute; dbt ls -q -s <model> --resource-type test returns zero for that path. Second, no workflow runs dbt test at all, so even an enabled test would not have run in CI. Should also note that the staging build covers a short recent window rather than full history because the *_START vars fall back to about seven days off-prod. Should not claim the tests passed, and should not claim the model's numbers are correct.",
+      "files": [],
+      "expectations": [
+        "Answers no, and does not endorse the claim that the tests pass",
+        "Identifies that data tests are disabled for mart/ntd_ridership because warehouse/dbt_project.yml enables them only for staging/payments, intermediate/payments, mart/payments and mart/tides",
+        "States that no CI workflow runs dbt test, so the green run is not evidence about tests independently of the enablement issue",
+        "Correctly establishes that CI does have BigQuery credentials and did build the model, rather than assuming CI is credential-less",
+        "Distinguishes the model building successfully from the model producing correct numbers",
+        "Gives a concrete way to check test enablement rather than only asserting it"
+      ]
+    }
+  ]
+}
