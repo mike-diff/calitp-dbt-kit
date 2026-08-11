@@ -1,0 +1,9 @@
+{
+  "name": "calitp-dbt-kit",
+  "version": "0.1.0",
+  "description": "Prepares, reviews and gates new dbt models in the cal-itp warehouse",
+  "author": {
+    "name": "Mike Salvati",
+    "email": "cdnmikes@gmail.com"
+  }
+}
